@@ -95,3 +95,13 @@ ENV/
 
 # mkdocs documentation
 /site
+
+# Parser Files
+/stanford-corenlp
+/CoreNLP-master
+stanford-english-corenlp-models-current.jar
+stanford-english-kbp-corenlp-models-current.jar
+stanford-corenlp-models-current.jar
+
+# Output Files
+input.txt.out
