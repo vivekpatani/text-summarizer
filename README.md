@@ -1,24 +1,34 @@
-# Text Summarizer
+# Python Wrapper Around CoreNLP along with Text Summarizer
 This is a simple text summarizer using a sentencer, depenency parser and reconstructor.  
 
 ## Stack Used
 - Python 3.5  
-- NLTK  
 - Stanford Dependency Parser (Used as a backgroud daemon)
-	- http://nlp.stanford.edu/software/stanford-english-corenlp-2016-10-31-models.jar
-	- http://nlp.stanford.edu/software/stanford-english-kbp-corenlp-2016-10-31-models.jar
-	- http://nlp.stanford.edu/software/stanford-corenlp-models-current.jar
+- Docker
 
-## Commands to run this
-- ```java -cp "*" -Xmx2g edu.stanford.nlp.pipeline.StanfordCoreNLP -annotators tokenize,ssplit,pos,lemma,ner,parse,dcoref,depparse -file input/input.txt```
+## Prerequisites - Please follow instructions
+- From Project Root - ```cd corenlp-server``` and get Stanford CoreNLP Server by executing - ```./get-corenlp.sh```
+- Docker - ```curl -sSL https://get.docker.com/ | sh -y```
+- Give docker local user rights - ```sudo usermod -aG docker $USER```
+- Reboot Computer
+- From Project Root - ```cd corenlp-server``` and Execute ```docker build -t corenlp-server .```
+- If not installed, install Python 3.5
 
-## Output
-- This generates an output file named ```input.txt.out``` which contains:  
-	- tokenised pos tags on tokens
-	- A sentencer breaks down paras to sentences and then further breaks each sentence to generate
-	dependencies.
+## How to initiate server
+- From Project Root - ```python init-server.py```
+
+## How to Terminate Server
+- From Project Root - ```python terminate-server.py```
+
+## Usage
+Please Edit script.py according to your requirements:  
+- Execute - ```script.py``` to give it a run.
+- To change input, edit ```input/input.txt```
 
 ## Todo
-- Make a daemon process
+- Extract Relations
 - Implement a triple store
 - Reconstruct sentences
+
+## Acknowledgements
+- https://github.com/hotpxl/corenlp-server for Docker container setup and download script.
