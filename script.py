@@ -29,6 +29,18 @@ def dump(data, file_name, folder_location):
 	except IOError:
 		print("Error Dumping File")
 
+# ================== Manipulate Information ========
+def extract_information(data):
+	"""
+	Extracting relevant dependencies
+	"""
+	information = {}
+	sentence_data = data["sentences"]
+	for each_sentence in sentence_data:
+		print(each_sentence["index"])
+		dependencies = each_sentence["enhancedPlusPlusDependencies"]
+		for each_dep in dependencies:
+			print(each_dep["dependentGloss"] + ": " + each_dep["dep"])
 
 # ============= Main Call ==============
 def main():
@@ -44,6 +56,7 @@ def main():
 		end = time()
 		data = json.loads(response.text)
 		dump(data, 'output.txt.json', './output/')
+		extract_information(data)
 		print(end - start)
 
 # ========= Boiler Plate Code ==========

@@ -32,3 +32,6 @@ Please Edit script.py according to your requirements:
 
 ## Acknowledgements
 - https://github.com/hotpxl/corenlp-server for Docker container setup and download script.
+
+## Tested on
+- Elementary OS (Ubuntu 16.04.02)
