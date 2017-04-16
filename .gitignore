@@ -102,6 +102,10 @@ ENV/
 stanford-english-corenlp-models-current.jar
 stanford-english-kbp-corenlp-models-current.jar
 stanford-corenlp-models-current.jar
+corenlp-server/stanford-corenlp-full-2016-10-31/
+corenlp-server/stanford-corenlp-full-2016-10-31.zip
 
 # Output Files
 input.txt.out
+/output/output.txt.json
+samplerequest
