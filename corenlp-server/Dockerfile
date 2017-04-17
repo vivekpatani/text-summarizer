@@ -2,7 +2,6 @@ FROM ubuntu:xenial
 RUN echo 'debconf debconf/frontend select Noninteractive' | debconf-set-selections && \
     apt-get update --yes && \
     apt-get install --yes software-properties-common && \
-    add-apt-repository --yes ppa:webupd8team/java && \
     apt-get update --yes && \
     apt-get install --yes build-essential openjdk-8-jdk python python-dev && \
     apt-get dist-upgrade --yes
