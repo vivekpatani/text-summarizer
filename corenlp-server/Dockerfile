@@ -9,4 +9,4 @@ COPY ./stanford-corenlp-full-2016-10-31 /corenlp-server
 WORKDIR /corenlp-server
 
 EXPOSE 80
-CMD java -mx4g -cp "*" edu.stanford.nlp.pipeline.StanfordCoreNLPServer --port 80 --timeout 50000
+CMD java -mx8g -cp "*" edu.stanford.nlp.pipeline.StanfordCoreNLPServer --port 80 --timeout 50000
