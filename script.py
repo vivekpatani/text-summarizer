@@ -56,9 +56,13 @@ def read_config(file_name='config.json', folder_location='./'):
 	Read config from config.json
 	'''
 	data = ''
-	with open(folder_location + file_name) as f:
-		data = json.loads(f)
-	return data
+	try:
+		with open(folder_location + file_name) as f:
+			data = json.load(f)
+		return data
+		log_it('Successfully Loaded Configuration.')
+	except Exception as error:
+		log_it('Error Loading Configuration.\n Error: {}'.format(error))
 
 def log_it(text, file_name='output.log', folder_location='./'):
     '''
@@ -191,8 +195,8 @@ def init_database():
         cursor = mariadb_connection.cursor(buffered=True)
         log_it('Database Connection Successful.')
         return mariadb_connection, cursor
-    except:
-        log_it('Connection to db Failed')
+    except Exception as error:
+        log_it('Connection to Database Failed.\nError: {}'.format(error))
 
 
 def insert_list_to_db(data, cursor, database='data_store', properties=['predicate', 'subj', 'obj']):
