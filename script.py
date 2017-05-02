@@ -10,6 +10,7 @@ from subprocess import call
 from time import time
 import copy
 import string
+import mysql.connector as mariadb
 
 # =========== Globals & Costants =============
 
@@ -36,9 +37,8 @@ def dump(data, file_name, folder_location):
     try:
         with open(folder_location + file_name, 'w', encoding='utf-8') as f:
             f.write(data)
-            print('File Dumping Successful')
     except IOError:
-        print('Error Dumping File')
+        log_it('Error Dumping File')
 
 
 def dump_json(data, file_name, folder_location):
@@ -48,9 +48,27 @@ def dump_json(data, file_name, folder_location):
     try:
         with open(folder_location + file_name, 'w', encoding='utf-8') as f:
             json.dump(data, f, indent=4)
-            print('JSON File Dumping Successful')
     except IOError:
-        print('Error Dumping File')
+        log_it('Error Dumping File')
+
+def read_config(file_name='config.json', folder_location='./'):
+	'''
+	Read config from config.json
+	'''
+	data = ''
+	with open(folder_location + file_name) as f:
+		data = json.loads(f)
+	return data
+
+def log_it(text, file_name='output.log', folder_location='./'):
+    '''
+    Logs output to output.log
+    '''
+    try:
+        with open(folder_location + file_name, 'a', encoding='utf-8') as f:
+            f.write(text + '\n')
+    except:
+        print('Error')
 
 # ================== Manipulate Information ==============
 
@@ -96,7 +114,6 @@ def resolve_anaphoras(data):
                 else:
                     refs[ref][sub_ref['text']] = [
                         (int(sub_ref['sentNum'] - 1), int(sub_ref['startIndex'] - 1))]
-        # refs[ref]['value'] = non_reps
     return refs
 
 
@@ -140,9 +157,71 @@ def update_anaphoras(file_data, data):
                     else:
                         count2 += 1
 
-    logit = str(count1) + "/" + str(count2) + " Anaphoras were resolved."
-    dump(logit, 'output.log', './')
+    log_it(str(count1) + '/' + str(count2) + ' Anaphoras were resolved.')
     return ' '.join(file_data)
+
+# ======================= Database Calls =================
+
+
+def push_data(data):
+    '''
+    Push Data to SQL DB
+    '''
+    try:
+        mariadb_connection, cursor = init_database()
+        truncate_if_exists(cursor)
+        insert_list_to_db(data, cursor)
+        mariadb_connection.commit()
+        log_it('Committed Changes to Database Successfully.')
+        mariadb_connection.close()
+        log_it('Connection to Database Closed.')
+
+    except Exception as error:
+        log_it('Database is in a broken state.\nError: {}'.format(error))
+
+
+def init_database():
+    '''
+    Initiates Database.
+    '''
+    cfg = read_config()
+    try:
+        mariadb_connection = mariadb.connect(
+            user=cfg['user'], password=cfg['password'], database=cfg['database'])
+        cursor = mariadb_connection.cursor(buffered=True)
+        log_it('Database Connection Successful.')
+        return mariadb_connection, cursor
+    except:
+        log_it('Connection to db Failed')
+
+
+def insert_list_to_db(data, cursor, database='data_store', properties=['predicate', 'subj', 'obj']):
+    '''
+    Given a list of tuples to db
+    properties[0], properties[1], properties[2],
+    '''
+    try:
+        for each_item in data:
+            cursor.execute('INSERT INTO data_store (predicate,subj,obj) VALUES (%s, %s, %s)', (each_item[
+                           0], each_item[1], each_item[2]))
+        log_it('Data was inserted.')
+    except mariadb.Error as error:
+        log_it('Failed to Insert Data.\nError: {}'.format(error))
+
+
+def truncate_if_exists(cursor):
+    try:
+        cursor.execute("TRUNCATE TABLE data_store")
+        log_it('Truncation Successful.')
+    except:
+        log_it('Could not truncate table.')
+
+
+def print_cursor(cursor):
+    '''
+    Print cursor
+    '''
+    print(cursor)
 
 # ================= Dependency Resolution ================
 
@@ -151,8 +230,8 @@ def extract_information(data):
     '''
     Pivot function to extract information.
     '''
-    tags = extract_sentence(data['sentences'])
-    # print(tags)
+    relations = extract_sentence(data['sentences'])
+    return relations
 
 
 def extract_sentence(data):
@@ -160,14 +239,29 @@ def extract_sentence(data):
     Extracting relevant dependencies
     Format : (sentence_number, relation_number, dsubj/nsubj, predicate, dobj/nobj)
     '''
+    relations = []
     for each_sentence in data:
         idx = each_sentence['index']
         dependencies = each_sentence['enhancedPlusPlusDependencies']
         # print(dependencies)
         roots, ccomp = extract_roots(dependencies)
+        for root in roots:
+            relations.append(extract_subjs_objs(dependencies, root))
+    return relations
 
 
-# def extract_subjs_objs()
+def extract_subjs_objs(dependencies, root):
+    '''
+    Extract all the objects for that ROOT
+    '''
+    subj_obj = [None, root, None]
+    for each_dep in dependencies:
+        if (each_dep['governorGloss'] == root):
+            if ('sub' in each_dep['dep']):
+                subj_obj[0] = each_dep['dependentGloss']
+            elif ('obj' in each_dep['dep']):
+                subj_obj[2] = each_dep['dependentGloss']
+    return subj_obj
 
 
 def extract_roots(data):
@@ -207,29 +301,33 @@ def main():
         sentence_list = sentencify(data)
         # dump_json(data, 'intermediate.txt.json', './output/')
 
+        # Resolve Anaphora
         anaphoras = (
             ('properties', '{"timeout":50000, "annotators":"coref","outputFormat":"json"}'),)
         response = requests.post(
             'http://localhost:8081/', params=anaphoras, data=file_data)
         data = json.loads(response.text)
         # dump_json(data, 'intermediate.txt.json', './output/')
-
         extracted_anaphoras = resolve_anaphoras(data)
         sent_tokenize_list = sent_tokenize(file_data)
         update_input = update_anaphoras(
             sent_tokenize_list, extracted_anaphoras)
-        dump(update_input, 'intermediate.txt', './output/')
+        # dump(update_input, 'intermediate.txt', './output/')
 
-        # Store Dependencies in SQL
+        # Parse all the sentences and extract triples
         params = (
             ('properties', '{"timeout":50000, "annotators":"tokenize,ssplit,lemma,depparse,mention","outputFormat":"json"}'),)
         response = requests.post(
             'http://localhost:8081/', params=params, data=update_input)
         data = json.loads(response.text)
         dump_json(data, 'output.txt.json', './output/')
-        extract_information(data)
+        triples = extract_information(data)
+
+        # Store them in MySQL now
+        push_data(triples)
+
         end = time()
-        print(end - start)
+        log_it(str(end - start) + ' seconds to complete the summarization.')
 
 # ========= Boiler Plate Code ==========
 if __name__ == '__main__':

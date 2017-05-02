@@ -109,3 +109,6 @@ corenlp-server/stanford-corenlp-full-2016-10-31.zip
 input.txt.out
 /output/output.txt.json
 samplerequest
+
+# Config
+config.json
