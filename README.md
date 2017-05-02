@@ -32,16 +32,27 @@ This is a simple text summarizer using a sentencer, depenency parser and reconst
 - From Project Root - ```cd corenlp-server``` and Execute ```docker build -t corenlp-server .```
 - This ensures that the docker container is now created.
 
+## One Time Setup
+- Rename **config-sample.json** to **config.json**
+- Change the configuration for MariaDB as per your computer
+- Create a new database (by default it is called text_summarization).
+- If you for some reason change the default name, change it in script.py as well.
+
 ## How to initiate server
 - From Project Root - ```python init-server.py```
 
-## Usage
-Please Edit script.py according to your requirements:  
-- Execute - ```script.py``` to give it a run.
-- To change input, edit ```input/input.txt```
-
 ## How to Terminate Server
 - From Project Root - ```python terminate-server.py```
+
+## Usage
+- First Initialize Server.
+- Please Edit script.py according to your requirements:  
+	- Execute - ```script.py``` to give it a run.
+	- To change input, edit ```input/input.txt```
+- Once done with summarization make sure to terminate server.
+
+## For errors
+- Check **output.log**
 
 ## Todo
 - Stats
@@ -51,8 +62,7 @@ Please Edit script.py according to your requirements:
 - Elementary OS (Ubuntu 16.04.02)
 
 ## Quirks
-- If for some reason Docker container acts weird.
-- **Terminate Server and Reinitialise it!**
+- If for some reason Docker container acts weird **Terminate Server and Reinitialise it!**
 
 ## Acknowledgements
 - https://github.com/hotpxl/corenlp-server for Docker container setup and download script.

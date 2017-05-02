@@ -1,5 +1,5 @@
 {
-	"user": "hello",
-	"password": "world",
+	"user": "root",
+	"password": "",
 	"database": "text_summarization"
 }
