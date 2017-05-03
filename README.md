@@ -38,14 +38,14 @@ This is a simple text summarizer using a sentencer, depenency parser and reconst
 - Create a new database (by default it is called text_summarization).
 - If you for some reason change the default name, change it in script.py as well.
 
-## How to initiate server
+## How to Initialise server
 - From Project Root - ```python init-server.py```
 
 ## How to Terminate Server
 - From Project Root - ```python terminate-server.py```
 
 ## Usage
-- First Initialize Server.
+- First Initialise Server.
 - Please Edit script.py according to your requirements:  
 	- Execute - ```script.py``` to give it a run.
 	- To change input, edit ```input/input.txt```
@@ -62,7 +62,7 @@ This is a simple text summarizer using a sentencer, depenency parser and reconst
 - Elementary OS (Ubuntu 16.04.02)
 
 ## Quirks
-- If for some reason Docker container acts weird **Terminate Server and Reinitialise it!**
+- If for some reason Docker container such as rejecting requests and acts weird **Terminate Server and Reinitialise it!**
 
 ## Acknowledgements
 - https://github.com/hotpxl/corenlp-server for Docker container setup and download script.

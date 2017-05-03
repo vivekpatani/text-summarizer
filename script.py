@@ -11,6 +11,8 @@ from time import time
 import copy
 import string
 import mysql.connector as mariadb
+import sys
+import nltk
 
 # =========== Globals & Costants =============
 
@@ -51,18 +53,20 @@ def dump_json(data, file_name, folder_location):
     except IOError:
         log_it('Error Dumping File')
 
+
 def read_config(file_name='config.json', folder_location='./'):
-	'''
-	Read config from config.json
-	'''
-	data = ''
-	try:
-		with open(folder_location + file_name) as f:
-			data = json.load(f)
-		return data
-		log_it('Successfully Loaded Configuration.')
-	except Exception as error:
-		log_it('Error Loading Configuration.\n Error: {}'.format(error))
+    '''
+    Read config from config.json
+    '''
+    data = ''
+    try:
+        with open(folder_location + file_name) as f:
+            data = json.load(f)
+        return data
+        log_it('Successfully Loaded Configuration.')
+    except Exception as error:
+        log_it('Error Loading Configuration.\n Error: {}'.format(error))
+
 
 def log_it(text, file_name='output.log', folder_location='./'):
     '''
@@ -167,16 +171,22 @@ def update_anaphoras(file_data, data):
 # ======================= Database Calls =================
 
 
-def push_data(data):
+def handle_analyze_data(data):
     '''
-    Push Data to SQL DB
+    Handle and Analyze with SQL DB
     '''
     try:
+        # Store Data
         mariadb_connection, cursor = init_database()
         truncate_if_exists(cursor)
         insert_list_to_db(data, cursor)
         mariadb_connection.commit()
         log_it('Committed Changes to Database Successfully.')
+
+        # Analyze Data
+        stats(cursor)
+
+        # Close Connections
         mariadb_connection.close()
         log_it('Connection to Database Closed.')
 
@@ -191,8 +201,12 @@ def init_database():
     cfg = read_config()
     try:
         mariadb_connection = mariadb.connect(
-            user=cfg['user'], password=cfg['password'], database=cfg['database'])
+            user=cfg['user'], password=cfg['password'], database=cfg['database'], use_unicode=True, charset="utf8")
+        # mariadb.set_character_set('utf8')
         cursor = mariadb_connection.cursor(buffered=True)
+        cursor.execute('SET NAMES utf8;')
+        cursor.execute('SET CHARACTER SET utf8;')
+        cursor.execute('SET character_set_connection=utf8;')
         log_it('Database Connection Successful.')
         return mariadb_connection, cursor
     except Exception as error:
@@ -227,6 +241,153 @@ def print_cursor(cursor):
     '''
     print(cursor)
 
+
+# ===================== Stats Calculation ================
+
+def stats(cursor):
+    '''
+    Return a few stats about the paragraph text
+    '''
+    try:
+        best_indi = best_subj_obj(cursor)
+        relevant_concept = best_relevant_concept(cursor, best_indi[0])
+        term_best_concept = best_concept(cursor)
+        print(term_best_concept)
+        print(best_indi[0])
+
+    except Exception as error:
+        # exc_type, exc_obj, exc_tb = sys.exc_info()
+        # print(exc_tb.tb_lineno)
+        log_it('{}'.format(error))
+
+
+def best_subj_obj(cursor):
+    '''
+    Fetches the best subject, object and predicate.
+    '''
+    try:
+        # Extract the most important predicate
+        predicates = {}
+        cursor.execute(
+            'SELECT `predicate`, COUNT(*) FROM data_store GROUP BY `predicate` ORDER BY COUNT(*) DESC LIMIT 10')
+        for predicate, count in cursor:
+            predicates[predicate] = count
+        log_it('Extracted Best Predicates.')
+    except mariadb.Error as error:
+        log_it('Could Not Extract Best Predicates')
+
+    try:
+        # Extract the most important predicate
+        subjects = {}
+        cursor.execute(
+            'SELECT `subj`, COUNT(*) FROM data_store GROUP BY `subj` ORDER BY COUNT(*) DESC LIMIT 10')
+        for subject, count in cursor:
+            subjects[subject] = count
+        log_it('Extracted Best Subjects.')
+    except mariadb.Error as error:
+        log_it('Could Not Extract Best Subjects.')
+
+    try:
+        # Extract the most important predicate
+        objects = {}
+        cursor.execute(
+            'SELECT `obj`, COUNT(*) FROM data_store GROUP BY `obj` ORDER BY COUNT(*) DESC LIMIT 10')
+        for obj, count in cursor:
+            objects[obj] = count
+        log_it('Extracted Best Objects.')
+    except mariadb.Error as error:
+        log_it('Could Not Extract Best Objects.')
+
+    all_terms = set(list(predicates.keys()) +
+                    list(subjects.keys()) + list(objects.keys()))
+    all_terms.remove(None)
+    best_indi = []
+    stop = set(nltk.corpus.stopwords.words('english'))
+    best_term_count = -sys.maxsize
+    best_term = ''
+    try:
+        for each_item in all_terms:
+            current = 0
+            if (each_item in predicates):
+                current += predicates[each_item]
+            if (each_item in subjects):
+                current += subjects[each_item]
+            if (each_item in objects):
+                current += objects[each_item]
+
+            tag = nltk.pos_tag([each_item])
+            if (current > best_term_count and len(each_item) > 2 and each_item not in stop and tag[0][1].startswith('N')):
+                best_term = each_item
+                best_term_count = current
+
+        best_indi = [best_term, best_term_count,
+                     predicates, subjects, objects, all_terms]
+        log_it('Extracted Best of All Successfully.')
+    except Exception as error:
+        exc_type, exc_obj, exc_tb = sys.exc_info()
+        print(exc_tb.tb_lineno)
+        log_it('Failed to Extract Best of All\n Error: {}'.format(error))
+    return best_indi
+
+
+def best_relevant_concept(cursor, relation, count=100):
+    '''
+    Extract Best Concept in Relations
+    '''
+    try:
+        concepts = {}
+        cursor.execute(
+            'SELECT predicate, subj, obj, COUNT(*) FROM data_store WHERE predicate = %s OR subj = %s OR obj = %s GROUP BY predicate, subj, obj ORDER BY COUNT(*) DESC LIMIT %s', (relation, relation, relation, count))
+        for predicate, subj, obj, count in cursor:
+            key = ''
+            if (predicate):
+                key += predicate + ':'
+            if (subj):
+                key += subj + ':'
+            if (obj):
+                key += obj
+            if (key):
+                if (key[-1] == ':'):
+                    key = key[:-1]
+                if (key in concepts):
+                    concepts[key] = concepts[key] + count
+                else:
+                    concepts[key] = count
+        log_it('Extracted Best Concept')
+        return concepts
+    except mariadb.Error as error:
+        log_it('Could Not Extract Best Concept')
+
+
+def best_concept(cursor, count=100):
+    '''
+    It extracts the most important and meaningful concept
+    '''
+    try:
+        concepts = {}
+        cursor.execute(
+            'SELECT `predicate`, `subj`, `obj`, COUNT(*) FROM data_store GROUP BY `predicate`, `subj`, `obj` ORDER BY COUNT(*) DESC LIMIT %s', (count,))
+        for predicate, subj, obj, count in cursor:
+            key = ''
+            if (predicate):
+                key += predicate + ':'
+            if (subj):
+                key += subj + ':'
+            if (obj):
+                key += obj
+            if (key):
+                if (key[-1] == ':'):
+                    key = key[:-1]
+                if (key in concepts):
+                    concepts[key] = concepts[key] + count
+                else:
+                    concepts[key] = count
+        log_it('Extracted Best Concept')
+        return concepts
+    except Exception as error:
+        log_it('Could Not Extract Best Concept')
+        print('{} '.format(error))
+
 # ================= Dependency Resolution ================
 
 
@@ -258,11 +419,11 @@ def extract_subjs_objs(dependencies, root):
     '''
     Extract all the objects for that ROOT
     '''
-    subj_obj = [None, root, None]
+    subj_obj = [root, None, None]
     for each_dep in dependencies:
         if (each_dep['governorGloss'] == root):
             if ('sub' in each_dep['dep']):
-                subj_obj[0] = each_dep['dependentGloss']
+                subj_obj[1] = each_dep['dependentGloss']
             elif ('obj' in each_dep['dep']):
                 subj_obj[2] = each_dep['dependentGloss']
     return subj_obj
@@ -289,7 +450,7 @@ def main():
     '''
     Main Calls the rolling function
     '''
-    file_data = readfile('input.txt', folder_location='./input/')
+    file_data = readfile('input3.txt', folder_location='./input/')
     # file_data = corpus.gutenberg.raw('austen-emma.txt').rstrip()
     # dump(file_data, 'jane-austenn-emma.txt', './input/')
 
@@ -298,7 +459,7 @@ def main():
 
         # First Break down into sentences and rebuild them
         sentences = (
-            ('properties', '{"timeout":50000, "annotators":"ssplit","outputFormat":"json"}'),)
+            ('properties', '{"timeout":70000, "annotators":"ssplit","outputFormat":"json"}'),)
         response = requests.post(
             'http://localhost:8081/', params=sentences, data=file_data)
         data = json.loads(response.text)
@@ -307,7 +468,7 @@ def main():
 
         # Resolve Anaphora
         anaphoras = (
-            ('properties', '{"timeout":50000, "annotators":"coref","outputFormat":"json"}'),)
+            ('properties', '{"timeout":70000, "annotators":"coref","outputFormat":"json"}'),)
         response = requests.post(
             'http://localhost:8081/', params=anaphoras, data=file_data)
         data = json.loads(response.text)
@@ -320,7 +481,7 @@ def main():
 
         # Parse all the sentences and extract triples
         params = (
-            ('properties', '{"timeout":50000, "annotators":"tokenize,ssplit,lemma,depparse,mention","outputFormat":"json"}'),)
+            ('properties', '{"timeout":70000, "annotators":"tokenize,ssplit,lemma,depparse,mention","outputFormat":"json"}'),)
         response = requests.post(
             'http://localhost:8081/', params=params, data=update_input)
         data = json.loads(response.text)
@@ -328,7 +489,7 @@ def main():
         triples = extract_information(data)
 
         # Store them in MySQL now
-        push_data(triples)
+        handle_analyze_data(triples)
 
         end = time()
         log_it(str(end - start) + ' seconds to complete the summarization.')
