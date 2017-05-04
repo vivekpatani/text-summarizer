@@ -13,6 +13,7 @@ import string
 import mysql.connector as mariadb
 import sys
 import nltk
+from random import randint
 
 # =========== Globals & Costants =============
 
@@ -184,7 +185,7 @@ def handle_analyze_data(data):
         log_it('Committed Changes to Database Successfully.')
 
         # Analyze Data
-        stats(cursor)
+        return stats(cursor)
 
         # Close Connections
         mariadb_connection.close()
@@ -218,6 +219,7 @@ def insert_list_to_db(data, cursor, database='data_store', properties=['predicat
     Given a list of tuples to db
     properties[0], properties[1], properties[2],
     '''
+    ignore = set('``')
     try:
         for each_item in data:
             cursor.execute('INSERT INTO data_store (predicate,subj,obj) VALUES (%s, %s, %s)', (each_item[
@@ -252,8 +254,7 @@ def stats(cursor):
         best_indi = best_subj_obj(cursor)
         relevant_concept = best_relevant_concept(cursor, best_indi[0])
         term_best_concept = best_concept(cursor)
-        print(term_best_concept)
-        print(best_indi[0])
+        return [best_indi, relevant_concept, term_best_concept]
 
     except Exception as error:
         # exc_type, exc_obj, exc_tb = sys.exc_info()
@@ -443,6 +444,86 @@ def extract_roots(data):
             ccomp.append(each_dep['dependentGloss'])
     return roots, ccomp
 
+
+# =============== Templating =================
+
+def templating(stats, data):
+    '''
+    Template Functions
+    '''
+    decision = elect_template(stats, data)
+    display_template(stats, data, decision)
+
+
+def is_person(data):
+    '''
+    Recognises whether if this a person or not.
+    '''
+    if (data != None):
+        sentences = (
+            ('properties', '{"timeout":70000, "annotators":"ner","outputFormat":"json"}'),)
+        response = requests.post(
+                'http://localhost:8081/', params=sentences, data=data)
+        recognition = json.loads(response.text)
+        recognition = recognition['sentences'][0]['tokens'][0]['ner']
+        if (recognition != None and recognition.lower() == 'person'):
+            return True
+        else: return False
+
+def elect_property(terms, ignore):
+    '''
+    Elect the highest concentration of person
+    '''
+    for each_item in terms:
+        if (each_item != None and is_person(each_item) and each_item != ignore):
+            return each_item
+
+def display_template(stats, data, decision):
+    '''
+    Displays the elected template.
+    '''
+    file_data = readfile('template.json', './template/')
+    data = json.loads(file_data)
+    idx = randint(0, 1)
+    if (decision.lower() == 'person'):
+        data = data['person'][str(idx)]
+    else:
+        data = data['others'][str(idx)]
+
+    term_best_concept = stats[2]
+    relevant_concept = stats[1]
+    best_indi = stats[0]
+
+    other_people = set()
+    other_people.add(elect_property(best_indi[2], stats[0][0]))
+    other_people.add(elect_property(best_indi[3], stats[0][0]))
+    other_people.add(elect_property(best_indi[4], stats[0][0]))
+    other_people.remove(None)
+    other_people = list(other_people)
+
+    print(data % (stats[0][0], other_people[0]))
+
+    if (len(other_people) > 1):
+        print('This para additionally talks about %s but with a lower degree as compared to the above mentioned entities or conecpts.' % (other_people[1]))
+
+
+def elect_template(stats, data):
+    '''
+    Elect the template based on stats and best concept.
+    '''
+    try:
+        sentences = (
+            ('properties', '{"timeout":70000, "annotators":"ner","outputFormat":"json"}'),)
+        response = requests.post(
+            'http://localhost:8081/', params=sentences, data=stats[0][0])
+        recognition = json.loads(response.text)
+        recognition = recognition['sentences'][0]['tokens'][0]['ner']
+        log_it('Successfully Recognised the Type of Template')
+        return recognition
+        # dump_json(recognition, 'recognition.txt.json', './output/')
+    except Exception as error:
+        log_it('{}'.format(error))
+
 # ============= Main Call ==============
 
 
@@ -481,7 +562,7 @@ def main():
 
         # Parse all the sentences and extract triples
         params = (
-            ('properties', '{"timeout":70000, "annotators":"tokenize,ssplit,lemma,depparse,mention","outputFormat":"json"}'),)
+            ('properties', '{"timeout":70000, "annotators":"tokenize,ssplit,lemma,depparse,mention,ner","outputFormat":"json"}'),)
         response = requests.post(
             'http://localhost:8081/', params=params, data=update_input)
         data = json.loads(response.text)
@@ -489,7 +570,10 @@ def main():
         triples = extract_information(data)
 
         # Store them in MySQL now
-        handle_analyze_data(triples)
+        stats = handle_analyze_data(triples)
+
+        # Just display the Template
+        templating(stats, data)
 
         end = time()
         log_it(str(end - start) + ' seconds to complete the summarization.')
