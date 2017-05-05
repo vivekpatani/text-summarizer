@@ -69,6 +69,32 @@ Once we process the dependencies, we lucidly look for the most important term in
 \subsection{Entity Recognition}
 This is the last part and is optional. Named Entity Recognition (NER) is a very interesting property to know for a certain concept or term. It helps us realise whether if the term or concept is a person and often times also helps us realise the gender. This can be helpful in the selection of templates as we can have a customised one for concepts representing people.
 
+\section{Practical Implementation}
+We have implemented the above mentioned idea on \href{https://github.com/vivekpatani/text-summarizer}{Github}. You can access the readme and follow the details to run the project.\\
+Before you begin, we need to satisfy a few prerequisites, such as:
+\begin{itemize}
+\item Python 3.5+
+\item Java 1.8+
+\item MariaDB 10+ (Any MySQL running on default port should do)
+\item Docker
+\end{itemize}
+
+Let's understand how it works:
+\begin{enumerate}
+\item Data to be processed in present in a file and the file is read as input (UTF-8) format.
+\item Primarily we break down the text into sentences by running it through a sentencer (Stanford NLP provides this).
+\item We then take each sentence and run it through a coreref relation generator. This is done to resolve any anaphoras that come across.
+\item Once we complete that we take each anaphora and replace each of those with the actual entity.
+\item Following that we push it through a Neural Net Depependency Parser (using Stanford NLP). This is the most important step and will cause your quality up or down depending upon how complex sentence structure is.
+\item Followed by that we save all the data in a MariaDB database. We store it in a triple store form (predicate, subject, object).
+\item We then perform statistical inferences based on the data stored.
+\item We find the best term, frequency of each predicate, subject and object and then look for concepts accordingly.
+\item Best individual concept and best individual term is giving more prefernce as compared to other things.
+\item The best term decides the next step, i.e. Templating.
+\item The best term is processed through a Named Entity Recognition Tool.
+\item That decides upon what template to pick up and finally that is template we display our best results in.
+\end{enumerate}
+
 \section{Conclusion}
 The conclusion goes here.
 \section*{Acknowledgment}
@@ -80,9 +106,11 @@ The authors would like to thank...
 \bibitem{IEEEhowto:kopka}
 H.~Kopka and P.~W. Daly, \emph{A Guide to \LaTeX}, 3rd~ed.\hskip 1em plus
   0.5em minus 0.4em\relax Harlow, England: Addison-Wesley, 1999.
-\bibitem{http://textminingonline.com/dive-into-nltk-part-ii-sentence-tokenize-and-word-tokenize}
-Texting Mine Online.
+\bibitem{}
+\href{http://textminingonline.com/dive-into-nltk-part-ii-sentence-tokenize-and-word-tokenize}{Texting Mine Online}
 \bibitem{https://nlp.stanford.edu/courses/cs224n/2003/fp/iqsayed/project_report.pdf}
-Stanford NLP Text
+\href{https://nlp.stanford.edu/courses/cs224n/2003/fp/iqsayed/project_report.pdf}{Stanford NLP Text}
+\bibitem{}
+\href{http://cl.indiana.edu/~md7/13/545/slides/13-dep/13-dep.pdf}{Sandra Kubler and Marcus Dickinson}
 \end{thebibliography}
 \end{document}
