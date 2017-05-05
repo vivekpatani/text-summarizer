@@ -16,7 +16,7 @@ Email: vpatani@umail.iu.edu}
 \IEEEauthorblockA{School of Informatics and Computing\\
 Indiana University\\
 Bloomington, Indiana -- 47405\\
-Email: vpatani@umail.iu.edu}}
+Email: jk247@umail.iu.edu}}
 \graphicspath{ {/home/flipswitch/junkyard/text-summarizer/documentation/} }
 \maketitle
 \begin{abstract}
@@ -43,6 +43,16 @@ We divide the approach into \textbf{5} sections:
 \end{itemize}
 
 We also use a lot of other ideas, but this briefly describes a good overview of the subject we are presenting here. Our focus is on English for different languages hold different semantic syntax, such like languages like Japanese and Chinese have unambiguous sentence ending markers.
+
+\subsection{Relevant Works}
+These are a few relevant studies \& works we came across:
+\begin{itemize}
+\item Several studies summarized text with a machine learning approach. Chuang, W. T., \& Yang, J. (2000, July) extracted sentence segments with automatic text summarize of on patent text data. The study used three supervised learning algorithm, C4.5, Bayesian, DistAI, to train and extract important sentence segments, and all of the methods performed well in generating good summary.
+
+\item Other than text summarization that have been widely studied, there are some studies explored web-page summarization. Shen et al. studied web-page classification algorithm on LookSmart Web dictionary, web summarization. Naïve Bayes and Support Vector Machine were used for classification algorithm to build baseline system. The study showed improvement in using the summarization-based classification algorithm and ensemble classifier than in using text-based algorithm.
+
+\item In the Rusu et al. (2009) [5] study, they analyzed text on Reuters newswire article and extracted triplet information in the base of semantic graph. After triplet generation, they used anaphora resolution for entities and semantic normalization and evaluated document with automatic summarization.
+\end{itemize}
 
 \section{Approach and Methodology}
 
@@ -96,11 +106,11 @@ Let's understand how it works:
 \end{enumerate}
 
 \section{Conclusion}
-The conclusion goes here.
+The conclusion is that our model that we generated is really focused on a single idea or concept. We focus on one \textit{best term or concept} and use that to find all relevant relations. This is a good idea if the paragraph or text represents exactly one idea, but that is not always the case. The limitations that this implementation holds is, we only focus on a single idea and do not look for any other ideas on it. Sometimes there maybe multiple ideas as important as the previous one and we may still miss it completely revealing an incomplete summary of the text. Also another caveat is that the word disambiguation of different senses may mean different in different contexts, but we do not distinguish that while searching for relevant concepts and hence once again may lead to an incomplete summary.
 \section*{Acknowledgment}
 
 
-The authors would like to thank...
+We would like to thank our Professor, Dr. Damir Cavar and the teaching assistant, Atreyee Mukherjee for giving us this opportunity and bringing out the best in us.
 \begin{thebibliography}{1}
 
 \bibitem{IEEEhowto:kopka}
@@ -112,5 +122,12 @@ H.~Kopka and P.~W. Daly, \emph{A Guide to \LaTeX}, 3rd~ed.\hskip 1em plus
 \href{https://nlp.stanford.edu/courses/cs224n/2003/fp/iqsayed/project_report.pdf}{Stanford NLP Text}
 \bibitem{}
 \href{http://cl.indiana.edu/~md7/13/545/slides/13-dep/13-dep.pdf}{Sandra Kubler and Marcus Dickinson}
+\bibitem{}
+Chuang, W. T., \& Yang, J. (2000, July). Extracting sentence segments for text summarization: a machine learning approach. In Proceedings of the 23rd annual international ACM SIGIR conference on Research and development in information retrieval (pp. 152-159). ACM.
+\bibitem{}
+Shen, D., Chen, Z., Yang, Q., Zeng, H. J., Zhang, B., Lu, Y., \& Ma, W. Y. (2004, July). Web-page classification through summarization. In Proceedings of the 27th annual international ACM SIGIR conference on Research and development in information retrieval (pp. 242-249). ACM.
+\bibitem{}
+Rusu, D., Fortuna, B., Grobelnik, M., \& Mladenic, D. (2009). Semantic Graphs Derived From Triplets with Application in Document Summarization. Informatica (Slovenia), 33(3), 357-362.
+
 \end{thebibliography}
 \end{document}
