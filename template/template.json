@@ -1,0 +1,10 @@
+{
+	"person": {
+		"0": "The person referred in this article is %s. We see that the passage also talks about %s.",
+		"1": "The person mentioned in the article is %s. They talk about %s also!"
+	},
+	"others": {
+		"0": "The article refers to %s, in the gist of it. They also talk about %s.",
+		"1": "The article talks about %s and %s in the centre of it."
+	}
+}
