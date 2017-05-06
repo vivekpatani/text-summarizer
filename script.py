@@ -531,7 +531,7 @@ def main():
     '''
     Main Calls the rolling function
     '''
-    file_data = readfile('input3.txt', folder_location='./input/')
+    file_data = readfile('input4.txt', folder_location='./input/')
     # file_data = corpus.gutenberg.raw('austen-emma.txt').rstrip()
     # dump(file_data, 'jane-austenn-emma.txt', './input/')
 
